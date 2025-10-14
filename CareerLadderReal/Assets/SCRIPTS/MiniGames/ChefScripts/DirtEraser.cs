@@ -49,14 +49,12 @@ public class DirtEraser : MonoBehaviour
         {
             if (Camera.main == null) return;
 
-            // Mouse world position
-            Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Camera.main.WorldToScreenPoint(transform.position).z));
+            Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(
+                new Vector3(Input.mousePosition.x, Input.mousePosition.y, 
+                            Camera.main.WorldToScreenPoint(transform.position).z));
 
-
-            // Local position relative to sprite
             Vector2 localPos = transform.InverseTransformPoint(mouseWorld);
 
-            // Convert local position to texture pixels using pivot
             Sprite sprite = sr.sprite;
             Vector2 pivot = sprite.pivot;
             float pixelsPerUnit = sprite.pixelsPerUnit;
@@ -64,7 +62,6 @@ public class DirtEraser : MonoBehaviour
             int px = Mathf.RoundToInt(localPos.x * pixelsPerUnit + pivot.x);
             int py = Mathf.RoundToInt(localPos.y * pixelsPerUnit + pivot.y);
 
-            // Store for debug
             lastMouseWorld = mouseWorld;
             lastLocalPos = localPos;
             lastPx = px;
@@ -73,24 +70,48 @@ public class DirtEraser : MonoBehaviour
             if (px >= 0 && px < texWidth && py >= 0 && py < texHeight)
             {
                 EraseAt(px, py);
+
+                // Check if fully cleaned after each erase
+                if (IsFullyCleaned())
+                {
+                    DishMinigameManager manager = FindObjectOfType<DishMinigameManager>();
+                    if (manager != null)
+                        manager.PlateCleaned();
+
+                    // Disable this dirt object
+                    gameObject.SetActive(false);
+                }
             }
         }
+    }
+
+    bool IsFullyCleaned()
+    {
+        Color32[] pixels = dirtTex.GetPixels32();
+        int total = pixels.Length;
+        int visible = 0;
+
+        for (int i = 0; i < total; i++)
+        {
+            if (pixels[i].a / 255f > eraseThreshold)
+                visible++;
+        }
+
+        // Return true if almost no visible dirt remains
+        return visible == 0;
     }
 
     void OnDrawGizmos()
     {
         if (!showDebug || sr == null) return;
 
-        // Mouse world position
         Gizmos.color = Color.green;
         Gizmos.DrawSphere(lastMouseWorld, 0.05f);
 
-        // Local position relative to sprite
         Vector3 localWorld = transform.TransformPoint(lastLocalPos);
         Gizmos.color = Color.blue;
         Gizmos.DrawSphere(localWorld, 0.05f);
 
-        // Brush pixel approximate world position
         if (sr.sprite != null)
         {
             Vector2 spriteSize = new Vector2(sr.sprite.rect.width, sr.sprite.rect.height) / sr.sprite.pixelsPerUnit;
@@ -148,6 +169,7 @@ public class DirtEraser : MonoBehaviour
     void OnMouseExit() => Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
     void OnDisable() => Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 }
+
 
 
 

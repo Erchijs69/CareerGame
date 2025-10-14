@@ -58,7 +58,7 @@ public class MinigameZone : MonoBehaviour
         Debug.Log("Entered minigame view");
     }
 
-    void ExitMinigame()
+    public void ExitMinigame()
     {
         inMinigame = false;
 
