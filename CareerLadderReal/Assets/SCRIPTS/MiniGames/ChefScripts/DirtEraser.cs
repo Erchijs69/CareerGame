@@ -3,17 +3,23 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class DirtEraser : MonoBehaviour
 {
-    public Texture2D brush;                
-    public int brushSize = 64;             
-    public float eraseThreshold = 0.01f;   
-    public bool drawOnHold = true;         
+    [Header("Eraser Settings")]
+    public Texture2D brush;
+    public int brushSize = 64;
+    public float eraseThreshold = 0.01f;
+    public bool drawOnHold = true;
 
-    public Texture2D cursorTexture;        
-    public Vector2 hotSpot = Vector2.zero; 
+    [Header("Cursor Settings")]
+    public Texture2D cursorTexture;
+    public Vector2 hotSpot = Vector2.zero;
 
-    SpriteRenderer sr;
-    Texture2D dirtTex;
-    int texWidth, texHeight;
+    [Header("Manager Reference")]
+    public DishMinigameManager manager; // set by the manager when spawning
+    public GameObject plateRoot;        // <-- set by manager to the plate GameObject
+
+    private SpriteRenderer sr;
+    private Texture2D dirtTex;
+    private int texWidth, texHeight;
 
     // Debug variables
     public bool showDebug = true;
@@ -50,7 +56,7 @@ public class DirtEraser : MonoBehaviour
             if (Camera.main == null) return;
 
             Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(
-                new Vector3(Input.mousePosition.x, Input.mousePosition.y, 
+                new Vector3(Input.mousePosition.x, Input.mousePosition.y,
                             Camera.main.WorldToScreenPoint(transform.position).z));
 
             Vector2 localPos = transform.InverseTransformPoint(mouseWorld);
@@ -74,9 +80,11 @@ public class DirtEraser : MonoBehaviour
                 // Check if fully cleaned after each erase
                 if (IsFullyCleaned())
                 {
-                    DishMinigameManager manager = FindObjectOfType<DishMinigameManager>();
+                    // Use explicit plateRoot reference instead of transform.root
                     if (manager != null)
-                        manager.PlateCleaned();
+                    {
+                        manager.PlateCleaned(plateRoot != null ? plateRoot : transform.root.gameObject);
+                    }
 
                     // Disable this dirt object
                     gameObject.SetActive(false);
@@ -97,7 +105,6 @@ public class DirtEraser : MonoBehaviour
                 visible++;
         }
 
-        // Return true if almost no visible dirt remains
         return visible == 0;
     }
 
@@ -164,10 +171,6 @@ public class DirtEraser : MonoBehaviour
         dirtTex.SetPixels32(pixels);
         dirtTex.Apply();
     }
-
-    void OnMouseEnter() => Cursor.SetCursor(cursorTexture, hotSpot, CursorMode.Auto);
-    void OnMouseExit() => Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-    void OnDisable() => Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
 }
 
 

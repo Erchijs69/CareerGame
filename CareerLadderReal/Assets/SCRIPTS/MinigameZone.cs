@@ -6,6 +6,8 @@ public class MinigameZone : MonoBehaviour
     public Camera mainCamera;
     public Camera minigameCamera;
 
+    public bool InMinigame => inMinigame;
+
     private bool playerInZone = false;
     private bool inMinigame = false;
     private GameObject player;
