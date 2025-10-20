@@ -8,6 +8,7 @@ public class playerMovementScript : MonoBehaviour
 
     private Rigidbody2D rb;
     private Vector2 moveInput;
+    private bool canMove = true; // ✅ new flag
 
     void Awake()
     {
@@ -18,6 +19,12 @@ public class playerMovementScript : MonoBehaviour
 
     void Update()
     {
+        if (!canMove)
+        {
+            moveInput = Vector2.zero; // Stop movement input immediately
+            return;
+        }
+
         // Get movement input (WASD or Arrow Keys)
         moveInput.x = Input.GetAxisRaw("Horizontal");
         moveInput.y = Input.GetAxisRaw("Vertical");
@@ -30,6 +37,20 @@ public class playerMovementScript : MonoBehaviour
     {
         // Apply movement in physics step
         rb.velocity = moveInput * moveSpeed;
+    }
+
+    // ✅ Call this when entering a minigame
+    public void DisableMovement()
+    {
+        canMove = false;
+        rb.velocity = Vector2.zero; // Stop immediately
+        moveInput = Vector2.zero;
+    }
+
+    // ✅ Call this when exiting a minigame
+    public void EnableMovement()
+    {
+        canMove = true;
     }
 }
 

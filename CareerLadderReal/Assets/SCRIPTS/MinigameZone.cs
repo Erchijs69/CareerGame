@@ -11,7 +11,7 @@ public class MinigameZone : MonoBehaviour
     private bool playerInZone = false;
     private bool inMinigame = false;
     private GameObject player;
-    private MonoBehaviour playerMovementScript;
+    private playerMovementScript playerMovementScript; // ✅ use correct type
 
     void Start()
     {
@@ -43,19 +43,18 @@ public class MinigameZone : MonoBehaviour
     {
         inMinigame = true;
 
-        // Disable main, enable mini
+        // Switch cameras
         if (mainCamera != null && minigameCamera != null)
         {
             mainCamera.enabled = false;
             minigameCamera.enabled = true;
-
-            // Adjust depth for safety/consistency
             mainCamera.depth = 0;
             minigameCamera.depth = 1;
         }
 
+        // ✅ Stop movement cleanly
         if (playerMovementScript != null)
-            playerMovementScript.enabled = false;
+            playerMovementScript.DisableMovement();
 
         Debug.Log("Entered minigame view");
     }
@@ -64,18 +63,18 @@ public class MinigameZone : MonoBehaviour
     {
         inMinigame = false;
 
-        // Disable mini, enable main
+        // Switch cameras back
         if (mainCamera != null && minigameCamera != null)
         {
             minigameCamera.enabled = false;
             mainCamera.enabled = true;
-
             minigameCamera.depth = 0;
             mainCamera.depth = 1;
         }
 
+        // ✅ Re-enable movement
         if (playerMovementScript != null)
-            playerMovementScript.enabled = true;
+            playerMovementScript.EnableMovement();
 
         Debug.Log("Exited minigame view");
     }
@@ -87,7 +86,6 @@ public class MinigameZone : MonoBehaviour
             playerInZone = true;
             player = other.gameObject;
 
-            // Replace with your actual movement script
             playerMovementScript = player.GetComponent<playerMovementScript>();
         }
     }
@@ -100,5 +98,6 @@ public class MinigameZone : MonoBehaviour
         }
     }
 }
+
 
 
