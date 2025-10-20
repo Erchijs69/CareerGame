@@ -10,6 +10,8 @@ public class UISpongeCursor : MonoBehaviour
     [Header("Minigame Reference")]
     public MinigameZone minigameZone;
 
+    private bool usingSpongeCursor = false;
+
     void Start()
     {
         if (cursorImage == null)
@@ -19,7 +21,10 @@ public class UISpongeCursor : MonoBehaviour
             return;
         }
 
-        Cursor.visible = false;
+        // Keep the normal system cursor visible by default
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
         cursorImage.localScale = new Vector3(scale, scale, 1f);
         cursorImage.gameObject.SetActive(false);
     }
@@ -28,19 +33,35 @@ public class UISpongeCursor : MonoBehaviour
     {
         if (minigameZone == null) return;
 
-        // Only show the sponge cursor when in minigame
-        bool showCursor = minigameZone.InMinigame;
-        cursorImage.gameObject.SetActive(showCursor);
+        bool shouldUseSponge = minigameZone.InMinigame;
 
-        if (!showCursor) return;
+        if (shouldUseSponge && !usingSpongeCursor)
+        {
+            // Switch to sponge cursor
+            Cursor.visible = false; // Hide default system cursor
+            cursorImage.gameObject.SetActive(true);
+            usingSpongeCursor = true;
+        }
+        else if (!shouldUseSponge && usingSpongeCursor)
+        {
+            // Switch back to normal cursor
+            Cursor.visible = true;
+            cursorImage.gameObject.SetActive(false);
+            usingSpongeCursor = false;
+        }
 
-        Vector2 pos;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            cursorImage.parent as RectTransform,
-            Input.mousePosition,
-            null,
-            out pos
-        );
-        cursorImage.localPosition = pos;
+        // Update sponge cursor position if active
+        if (usingSpongeCursor)
+        {
+            Vector2 pos;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                cursorImage.parent as RectTransform,
+                Input.mousePosition,
+                null,
+                out pos
+            );
+            cursorImage.localPosition = pos;
+        }
     }
 }
+

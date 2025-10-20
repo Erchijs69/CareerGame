@@ -7,6 +7,7 @@ public class PotatoPeelSurface : MonoBehaviour
     public Texture2D peelMask;
     public int brushSize = 32;
     public float eraseThreshold = 0.05f;
+    public float peelSpeed = 1f; // Peel per second
 
     private SpriteRenderer sr;
     private Texture2D potatoTexture;
@@ -33,25 +34,35 @@ public class PotatoPeelSurface : MonoBehaviour
         sr.sprite = Sprite.Create(potatoTexture, new Rect(0, 0, texWidth, texHeight), new Vector2(0.5f, 0.5f), sprite.pixelsPerUnit);
     }
 
-    public void PeelAt(Vector2 localHit, float peelFactor = 1f)
-    {
-        if (isPeeled) return;
+    /// <summary>
+    /// Peels the potato under the peeler.
+    /// </summary>
+    public void PeelAt(Vector3 peelerWorldPos, float peelAmount)
+{
+    if (isPeeled) return;
 
-        int px = Mathf.RoundToInt((localHit.x + 0.5f) * (texWidth - 1));
-        int py = Mathf.RoundToInt((localHit.y + 0.5f) * (texHeight - 1));
+    // Map world position to texture coordinates (unchanged)
+    Bounds bounds = sr.bounds;
+    float u = Mathf.InverseLerp(bounds.min.x, bounds.max.x, peelerWorldPos.x);
+    float v = Mathf.InverseLerp(bounds.min.y, bounds.max.y, peelerWorldPos.y);
 
-        if (px < 0 || px >= texWidth || py < 0 || py >= texHeight) return;
+    int px = Mathf.RoundToInt(u * (texWidth - 1));
+    int py = Mathf.RoundToInt(v * (texHeight - 1));
 
-        EraseAt(px, py, peelFactor);
+    if (px < 0 || px >= texWidth || py < 0 || py >= texHeight) return;
 
-        if (IsFullyPeeled())
-        {
-            isPeeled = true;
-            var manager = FindObjectOfType<PotatoPeelerManager>();
-            if (manager != null)
-                manager.PotatoPeeled();
-        }
-    }
+    EraseAt(px, py, peelAmount);
+
+    if (IsFullyPeeled())
+{
+    isPeeled = true;
+    var manager = FindObjectOfType<PotatoPeelerManager>();
+    if (manager != null)
+        manager.PotatoPeeled(this.gameObject);
+}
+
+}
+
 
     void EraseAt(int cx, int cy, float peelFactor)
     {
@@ -83,6 +94,7 @@ public class PotatoPeelSurface : MonoBehaviour
                 int idx = y * texWidth + x;
                 Color32 c = pixels[idx];
                 float newAlpha = c.a / 255f * (1f - maskAlpha * peelFactor);
+                newAlpha = Mathf.Clamp01(newAlpha);
                 c.a = (byte)(newAlpha * 255);
                 pixels[idx] = c;
             }
@@ -103,5 +115,7 @@ public class PotatoPeelSurface : MonoBehaviour
         return true;
     }
 }
+
+
 
 

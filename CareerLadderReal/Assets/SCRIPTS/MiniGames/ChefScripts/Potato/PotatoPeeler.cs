@@ -5,17 +5,18 @@ public class PotatoPeeler : MonoBehaviour
     public PotatoPeelerManager manager;
     public PotatoPeelSurface potato;
 
-    [Header("Peeling Settings")]
-    public float peelMultiplier = 1f;   // Base peel strength
-    public float speedDampening = 5f;   // Reduces peel when moving fast
-
     private bool dragging = false;
     private Vector3 offset;
     private Vector3 lastPosition;
 
+    [Header("Peeling Settings")]
+    public float horizontalPeelMultiplier = 1f;
+
     void Update()
     {
-        // Start dragging
+        if (manager == null || manager.spawnedPotatoes.Count == 0) return;
+        if (manager.minigameZone == null || !manager.minigameZone.InMinigame) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             Vector3 mouseWorld = GetMouseWorld();
@@ -27,29 +28,23 @@ public class PotatoPeeler : MonoBehaviour
             }
         }
 
-        // Stop dragging
-        if (Input.GetMouseButtonUp(0))
-        {
-            dragging = false;
-        }
+        if (Input.GetMouseButtonUp(0)) dragging = false;
 
         if (dragging)
         {
             Vector3 mouseWorld = GetMouseWorld() + offset;
             transform.position = new Vector3(mouseWorld.x, mouseWorld.y, transform.position.z);
 
-            // Compute distance moved since last frame
-            float distance = Vector3.Distance(mouseWorld, lastPosition);
-
-            // Peel factor decreases with speed
-            float peelFactor = peelMultiplier / (1f + distance * speedDampening);
-
-            // Check if over potato
-            Collider2D hit = Physics2D.OverlapPoint(transform.position, LayerMask.GetMask("Potato"));
-            if (hit != null && hit.gameObject == potato.gameObject)
+            float deltaX = mouseWorld.x - lastPosition.x;
+            if (Mathf.Abs(deltaX) > 0f)
             {
-                Vector2 local = potato.transform.InverseTransformPoint(transform.position);
-                potato.PeelAt(local, peelFactor);
+                float peelAmount = horizontalPeelMultiplier * Mathf.Abs(deltaX);
+                foreach (var potatoGO in manager.spawnedPotatoes)
+                {
+                    if (potatoGO == null) continue;
+                    PotatoPeelSurface peelSurface = potatoGO.GetComponent<PotatoPeelSurface>();
+                    if (peelSurface != null) peelSurface.PeelAt(transform.position, peelAmount);
+                }
             }
 
             lastPosition = mouseWorld;
@@ -69,6 +64,11 @@ public class PotatoPeeler : MonoBehaviour
         return Camera.main.ScreenToWorldPoint(mPos);
     }
 }
+
+
+
+
+
 
 
 

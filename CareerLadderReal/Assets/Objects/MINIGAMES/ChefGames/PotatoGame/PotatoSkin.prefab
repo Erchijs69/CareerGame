@@ -29,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 49.059, y: 3.391, z: 0}
-  m_LocalScale: {x: 0.6674284, y: 0.81574583, z: 2.471957}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7422988285291545187}
@@ -76,8 +76,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: b0dd0f6f1bcf46e45a287ad517e92663, type: 3}
-  m_Color: {r: 0.5245282, g: 0.3751038, b: 0.1890281, a: 0.6862745}
+  m_Sprite: {fileID: 21300000, guid: 2c2fde2f7e6104d4ca1fc4a83ea5c7e2, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -99,9 +99,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 921025af433aab742adc4111175c9e24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  peelMask: {fileID: 2800000, guid: 0e4f135e5f42fa44798f354ab14d30f7, type: 3}
-  brushSize: 500
-  eraseThreshold: 0.02
+  peelMask: {fileID: 2800000, guid: 7b307299e09527d439a059542e90453d, type: 3}
+  brushSize: 300
+  eraseThreshold: 0.2
+  peelSpeed: 10
 --- !u!70 &1148391369856552577
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -134,7 +135,7 @@ CapsuleCollider2D:
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: -0.0000052981904, y: -0.06038348}
+  m_Offset: {x: 0, y: 0}
   m_Size: {x: 7.7162743, y: 7.7330546}
   m_Direction: 0
 --- !u!1 &4713905155989441698
@@ -164,7 +165,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -0.027272195, z: 0.01}
-  m_LocalScale: {x: 8.074074, y: 7.876061, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1599339003451093303}
@@ -210,8 +211,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
-  m_Color: {r: 0.85660374, g: 0.62574774, b: 0.3410252, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 2e095f3a3ff99ab4fbe23b9cfdb1a7aa, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
