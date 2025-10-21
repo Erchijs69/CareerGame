@@ -2,20 +2,20 @@ using UnityEngine;
 
 public class PotatoPeeler : MonoBehaviour
 {
+    [Header("References")]
     public PotatoPeelerManager manager;
-    public PotatoPeelSurface potato;
+    public PotatoPeelSurface activePotato;
+
+    [Header("Peeling Settings")]
+    public float horizontalPeelMultiplier = 1f;
 
     private bool dragging = false;
     private Vector3 offset;
     private Vector3 lastPosition;
 
-    [Header("Peeling Settings")]
-    public float horizontalPeelMultiplier = 1f;
-
     void Update()
     {
-        if (manager == null || manager.spawnedPotatoes.Count == 0) return;
-        if (manager.minigameZone == null || !manager.minigameZone.InMinigame) return;
+        if (manager == null || !manager.InMinigame || activePotato == null) return;
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -28,7 +28,8 @@ public class PotatoPeeler : MonoBehaviour
             }
         }
 
-        if (Input.GetMouseButtonUp(0)) dragging = false;
+        if (Input.GetMouseButtonUp(0))
+            dragging = false;
 
         if (dragging)
         {
@@ -36,15 +37,10 @@ public class PotatoPeeler : MonoBehaviour
             transform.position = new Vector3(mouseWorld.x, mouseWorld.y, transform.position.z);
 
             float deltaX = mouseWorld.x - lastPosition.x;
-            if (Mathf.Abs(deltaX) > 0f)
+            if (Mathf.Abs(deltaX) > 0.001f)
             {
                 float peelAmount = horizontalPeelMultiplier * Mathf.Abs(deltaX);
-                foreach (var potatoGO in manager.spawnedPotatoes)
-                {
-                    if (potatoGO == null) continue;
-                    PotatoPeelSurface peelSurface = potatoGO.GetComponent<PotatoPeelSurface>();
-                    if (peelSurface != null) peelSurface.PeelAt(transform.position, peelAmount);
-                }
+                activePotato.PeelAt(transform.position, peelAmount);
             }
 
             lastPosition = mouseWorld;
@@ -63,7 +59,19 @@ public class PotatoPeeler : MonoBehaviour
         mPos.z = Mathf.Abs(Camera.main.transform.position.z - transform.position.z);
         return Camera.main.ScreenToWorldPoint(mPos);
     }
+
+    public void SetActivePotato(PotatoPeelSurface potato)
+    {
+        activePotato = potato;
+    }
+
+    public void ClearPotato()
+    {
+        activePotato = null;
+    }
 }
+
+
 
 
 

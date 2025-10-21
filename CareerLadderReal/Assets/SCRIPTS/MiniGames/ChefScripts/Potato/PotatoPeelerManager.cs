@@ -1,153 +1,50 @@
 using UnityEngine;
+using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 
 public class PotatoPeelerManager : MonoBehaviour
 {
-    [Header("Peeler Minigame Setup")]
+    [Header("Setup")]
     public GameObject[] potatoPrefabs;
     public GameObject peelerPrefab;
     public Transform potatoSpawnPoint;
     public Transform peelerStartPoint;
 
     [Header("Spawn Settings")]
-    public int maxPotatoes = 5;
-    public float minSpawnDelay = 5f;
-    public float maxSpawnDelay = 15f;
-    public float zOffsetPerPotato = 0.05f;
+    public int batchSize = 5;
+    public float nextBatchDelay = 20f; // Can be changed
+    public TMP_Text[] countdownTexts;  // Assign all TMP texts here
 
-    [Header("Spawn Areas (Relative to potatoSpawnPoint)")]
-    public Vector2 spawnArea1Min = new Vector2(-3f, -3f);
-    public Vector2 spawnArea1Max = new Vector2(3f, 3f);
-    public Vector2 spawnArea2Min = new Vector2(-3f, -3f);
-    public Vector2 spawnArea2Max = new Vector2(3f, 3f);
-    public Vector2 spawnArea3Min = new Vector2(-3f, -3f);
-    public Vector2 spawnArea3Max = new Vector2(3f, 3f);
-    public Vector2 spawnArea4Min = new Vector2(-3f, -3f);
-    public Vector2 spawnArea4Max = new Vector2(3f, 3f);
+    private PotatoPeeler peeler;
+    private PotatoPeelSurface activePotato;
+    private Queue<GameObject> potatoQueue = new Queue<GameObject>();
+    private Vector3 peelerInitialPosition;
+    private Coroutine countdownCoroutine;
 
-    [HideInInspector] public List<GameObject> spawnedPotatoes = new List<GameObject>();
-
-    private GameObject currentPeeler;
+    public bool InMinigame => minigameZone != null && minigameZone.InMinigame;
     public MinigameZone minigameZone;
-    private Coroutine spawnRoutine;
 
     void Start()
     {
         if (minigameZone == null)
             minigameZone = FindObjectOfType<MinigameZone>();
 
-        spawnRoutine = StartCoroutine(SpawnPotatoesOverTime());
-    }
+        SpawnPeeler();
 
-    private IEnumerator SpawnPotatoesOverTime()
-    {
-        while (true)
-        {
-            if (spawnedPotatoes.Count < maxPotatoes)
-            {
-                float waitTime = Random.Range(minSpawnDelay, maxSpawnDelay);
-                yield return new WaitForSeconds(waitTime);
-                if (spawnedPotatoes.Count < maxPotatoes)
-                    SpawnAndPoolPotato();
-            }
-            else
-            {
-                yield return null;
-            }
-        }
-    }
-
-    private void SpawnAndPoolPotato()
-    {
-        if (potatoPrefabs.Length == 0)
-        {
-            Debug.LogWarning("No potato prefabs assigned!");
-            return;
-        }
-
-        GameObject prefab = potatoPrefabs[Random.Range(0, potatoPrefabs.Length)];
-        GameObject newPotato = Instantiate(prefab, potatoSpawnPoint.position, Quaternion.identity);
-
-        // Pick a random area
-        int areaIndex = Random.Range(1, 5);
-        Vector2 min, max;
-        switch (areaIndex)
-        {
-            case 1: min = spawnArea1Min; max = spawnArea1Max; break;
-            case 2: min = spawnArea2Min; max = spawnArea2Max; break;
-            case 3: min = spawnArea3Min; max = spawnArea3Max; break;
-            case 4: min = spawnArea4Min; max = spawnArea4Max; break;
-            default: min = spawnArea1Min; max = spawnArea1Max; break;
-        }
-
-        // Find a valid spawn position
-        Vector3 spawnPos = Vector3.zero;
-        int attempts = 0;
-        bool foundValidPos = false;
-        CircleCollider2D newCollider = newPotato.GetComponent<CircleCollider2D>();
-        float newRadius = newCollider != null ? newCollider.radius : 0.5f;
-
-        while (attempts < 100)
-        {
-            float randomX = Random.Range(min.x, max.x);
-            float randomY = Random.Range(min.y, max.y);
-            float zOffset = spawnedPotatoes.Count * zOffsetPerPotato;
-            spawnPos = potatoSpawnPoint.position + new Vector3(randomX, randomY, zOffset);
-
-            bool overlaps = false;
-            foreach (var potato in spawnedPotatoes)
-            {
-                if (potato == null) continue;
-                CircleCollider2D otherCol = potato.GetComponent<CircleCollider2D>();
-                float otherRadius = otherCol != null ? otherCol.radius : 0.5f;
-                if (Vector3.Distance(spawnPos, potato.transform.position) < newRadius + otherRadius)
-                {
-                    overlaps = true;
-                    break;
-                }
-            }
-
-            if (!overlaps)
-            {
-                foundValidPos = true;
-                break;
-            }
-            attempts++;
-        }
-
-        if (!foundValidPos)
-            Debug.LogWarning("Could not find a valid spawn position, spawning anyway.");
-
-        newPotato.transform.position = spawnPos;
-        spawnedPotatoes.Add(newPotato);
-
-        // Spawn peeler if needed
-        if (currentPeeler == null)
-            SpawnPeeler();
-
-        // Always assign the *latest* spawned potato as the active one
-        if (currentPeeler != null)
-        {
-            var peelerScript = currentPeeler.GetComponent<PotatoPeeler>();
-            if (peelerScript != null)
-            {
-                peelerScript.potato = newPotato.GetComponent<PotatoPeelSurface>();
-            }
-        }
-
-        Debug.Log($"Spawned potato #{spawnedPotatoes.Count} from prefab {prefab.name} in area {areaIndex}");
+        // Start first batch countdown
+        StartCountdown(nextBatchDelay);
     }
 
     private void SpawnPeeler()
     {
-        Vector3 peelerPos = peelerStartPoint.position;
-        currentPeeler = Instantiate(peelerPrefab, peelerPos, Quaternion.identity);
-        PotatoPeeler peelerScript = currentPeeler.GetComponent<PotatoPeeler>();
-        if (peelerScript != null)
-            peelerScript.manager = this;
+        GameObject peelerObj = Instantiate(peelerPrefab, peelerStartPoint.position, Quaternion.identity);
+        peeler = peelerObj.GetComponent<PotatoPeeler>();
+        peeler.manager = this;
 
-        SpriteRenderer sr = currentPeeler.GetComponent<SpriteRenderer>();
+        peelerInitialPosition = peelerStartPoint.position;
+
+        SpriteRenderer sr = peelerObj.GetComponent<SpriteRenderer>();
         if (sr != null)
         {
             sr.sortingLayerName = "Foreground";
@@ -155,33 +52,115 @@ public class PotatoPeelerManager : MonoBehaviour
         }
     }
 
-    public void PotatoPeeled(GameObject peeledPotato)
+    private void SpawnNewBatch()
     {
-        if (peeledPotato == null) return;
+        // Reset peeler position
+        if (peeler != null)
+            peeler.transform.position = peelerInitialPosition;
 
-        if (spawnedPotatoes.Contains(peeledPotato))
-            spawnedPotatoes.Remove(peeledPotato);
+        // Clear leftover potatoes
+        potatoQueue.Clear();
 
-        Destroy(peeledPotato);
-        Debug.Log($"Potato peeled! Pool size now: {spawnedPotatoes.Count}");
-
-        // Assign the new "latest" potato as the next peel target
-        if (currentPeeler != null)
+        // Spawn batchSize potatoes
+        for (int i = 0; i < batchSize; i++)
         {
-            var peelerScript = currentPeeler.GetComponent<PotatoPeeler>();
-            if (peelerScript != null)
+            GameObject potato = InstantiateRandomPotato();
+            var surface = potato.GetComponent<PotatoPeelSurface>();
+            surface.OnFullyPeeled += HandlePotatoPeeled;
+
+            if (i == 0)
             {
-                if (spawnedPotatoes.Count > 0)
-                    peelerScript.potato = spawnedPotatoes[spawnedPotatoes.Count - 1].GetComponent<PotatoPeelSurface>();
-                else
-                    peelerScript.potato = null;
+                activePotato = surface;
+                peeler.SetActivePotato(activePotato);
+            }
+            else
+            {
+                potatoQueue.Enqueue(potato);
+                potato.SetActive(false);
             }
         }
 
-        if (minigameZone != null && spawnedPotatoes.Count == 0)
-            minigameZone.ExitMinigame();
+        // Hide countdown texts when batch spawns
+        foreach (var text in countdownTexts)
+        {
+            if (text != null)
+                text.gameObject.SetActive(false);
+        }
+    }
+
+    private GameObject InstantiateRandomPotato()
+    {
+        if (potatoPrefabs.Length == 0) return null;
+        GameObject prefab = potatoPrefabs[Random.Range(0, potatoPrefabs.Length)];
+        GameObject potato = Instantiate(prefab, potatoSpawnPoint.position, Quaternion.identity);
+        return potato;
+    }
+
+    private void HandlePotatoPeeled(PotatoPeelSurface peeled)
+    {
+        peeled.OnFullyPeeled -= HandlePotatoPeeled;
+        Destroy(peeled.gameObject);
+
+        // Promote next potato
+        if (potatoQueue.Count > 0)
+        {
+            GameObject next = potatoQueue.Dequeue();
+            next.SetActive(true);
+            activePotato = next.GetComponent<PotatoPeelSurface>();
+            peeler.SetActivePotato(activePotato);
+        }
+        else
+        {
+            // Batch finished
+            activePotato = null;
+            peeler.ClearPotato();
+
+            // Start next batch countdown
+            StartCountdown(nextBatchDelay);
+        }
+    }
+
+    private void StartCountdown(float duration)
+    {
+        if (countdownCoroutine != null) StopCoroutine(countdownCoroutine);
+        countdownCoroutine = StartCoroutine(CountdownCoroutine(duration));
+    }
+
+    private IEnumerator CountdownCoroutine(float duration)
+    {
+        // Enable all countdown texts
+        foreach (var text in countdownTexts)
+        {
+            if (text != null)
+                text.gameObject.SetActive(true);
+        }
+
+        float remaining = duration;
+        while (remaining > 0)
+        {
+            string displayTime = Mathf.CeilToInt(remaining).ToString();
+            foreach (var text in countdownTexts)
+            {
+                if (text != null)
+                    text.text = displayTime;
+            }
+
+            remaining -= Time.deltaTime;
+            yield return null;
+        }
+
+        // Spawn next batch
+        SpawnNewBatch();
     }
 }
+
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 [RequireComponent(typeof(SpriteRenderer))]
 public class PotatoPeelSurface : MonoBehaviour
@@ -7,12 +8,14 @@ public class PotatoPeelSurface : MonoBehaviour
     public Texture2D peelMask;
     public int brushSize = 32;
     public float eraseThreshold = 0.05f;
-    public float peelSpeed = 1f; // Peel per second
+    public float peelSpeed = 1f;
 
     private SpriteRenderer sr;
     private Texture2D potatoTexture;
     private int texWidth, texHeight;
     private bool isPeeled = false;
+
+    public event Action<PotatoPeelSurface> OnFullyPeeled;
 
     void Start()
     {
@@ -31,38 +34,32 @@ public class PotatoPeelSurface : MonoBehaviour
         potatoTexture.SetPixels(pixels);
         potatoTexture.Apply();
 
-        sr.sprite = Sprite.Create(potatoTexture, new Rect(0, 0, texWidth, texHeight), new Vector2(0.5f, 0.5f), sprite.pixelsPerUnit);
+        sr.sprite = Sprite.Create(potatoTexture, new Rect(0, 0, texWidth, texHeight),
+            new Vector2(0.5f, 0.5f), sprite.pixelsPerUnit);
     }
 
-    /// <summary>
-    /// Peels the potato under the peeler.
-    /// </summary>
     public void PeelAt(Vector3 peelerWorldPos, float peelAmount)
-{
-    if (isPeeled) return;
+    {
+        if (isPeeled) return;
 
-    // Map world position to texture coordinates (unchanged)
-    Bounds bounds = sr.bounds;
-    float u = Mathf.InverseLerp(bounds.min.x, bounds.max.x, peelerWorldPos.x);
-    float v = Mathf.InverseLerp(bounds.min.y, bounds.max.y, peelerWorldPos.y);
+        Bounds bounds = sr.bounds;
+        float u = Mathf.InverseLerp(bounds.min.x, bounds.max.x, peelerWorldPos.x);
+        float v = Mathf.InverseLerp(bounds.min.y, bounds.max.y, peelerWorldPos.y);
 
-    int px = Mathf.RoundToInt(u * (texWidth - 1));
-    int py = Mathf.RoundToInt(v * (texHeight - 1));
+        int px = Mathf.RoundToInt(u * (texWidth - 1));
+        int py = Mathf.RoundToInt(v * (texHeight - 1));
 
-    if (px < 0 || px >= texWidth || py < 0 || py >= texHeight) return;
+        if (px < 0 || px >= texWidth || py < 0 || py >= texHeight) return;
 
-    EraseAt(px, py, peelAmount);
+        EraseAt(px, py, peelAmount);
 
-    if (IsFullyPeeled())
-{
-    isPeeled = true;
-    var manager = FindObjectOfType<PotatoPeelerManager>();
-    if (manager != null)
-        manager.PotatoPeeled(this.gameObject);
-}
-
-}
-
+        if (IsFullyPeeled())
+        {
+            isPeeled = true;
+            gameObject.SetActive(false);
+            OnFullyPeeled?.Invoke(this);
+        }
+    }
 
     void EraseAt(int cx, int cy, float peelFactor)
     {
@@ -114,7 +111,23 @@ public class PotatoPeelSurface : MonoBehaviour
         }
         return true;
     }
+
+    public void ResetPeel()
+    {
+        isPeeled = false;
+        if (sr && potatoTexture)
+        {
+            var sprite = sr.sprite;
+            Rect rect = sprite.textureRect;
+            Color[] pixels = sprite.texture.GetPixels((int)rect.x, (int)rect.y, texWidth, texHeight);
+            potatoTexture.SetPixels(pixels);
+            potatoTexture.Apply();
+        }
+        gameObject.SetActive(true);
+    }
 }
+
+
 
 
 
