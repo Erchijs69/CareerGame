@@ -532,7 +532,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 1.2}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &287593687
@@ -1970,14 +1970,14 @@ RectTransform:
   m_GameObject: {fileID: 1003126722}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.38, y: 0.38, z: 0.38}
+  m_LocalScale: {x: 0.2483224, y: 0.2483224, z: 0.2483224}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1124575444}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -34, y: 19.8}
+  m_AnchoredPosition: {x: -28.9, y: 14}
   m_SizeDelta: {x: 37.13, y: 77.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1003126724
@@ -2359,11 +2359,11 @@ RectTransform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 116003013}
-  - {fileID: 903571543}
-  - {fileID: 329961547}
   - {fileID: 1003126723}
   - {fileID: 1597320349}
   - {fileID: 1128406866}
+  - {fileID: 903571543}
+  - {fileID: 329961547}
   m_Father: {fileID: 2138552073}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -2435,8 +2435,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   progressSlider: {fileID: 1124575445}
-  drainSpeed: 0.01
-  gainAmount: 0.01
+  baseGainAmount: 0.1
 --- !u!1 &1128406865
 GameObject:
   m_ObjectHideFlags: 0
@@ -2464,14 +2463,14 @@ RectTransform:
   m_GameObject: {fileID: 1128406865}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.38, y: 0.38, z: 0.38}
+  m_LocalScale: {x: 0.2483224, y: 0.2483224, z: 0.2483224}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1124575444}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 77, y: 19.8}
+  m_AnchoredPosition: {x: 77, y: 14}
   m_SizeDelta: {x: 37.13, y: 77.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1128406867
@@ -2587,8 +2586,8 @@ MonoBehaviour:
   maxSpawnDelay: 5
   zOffsetPerPlate: 0.05
   progressBar: {fileID: 1124575446}
-  drainSpeed: 0.01
-  gainAmount: 0.02
+  dishDrainSpeed: 0.05
+  dishGainAmount: 0.01
 --- !u!4 &1238622733
 Transform:
   m_ObjectHideFlags: 0
@@ -3163,14 +3162,14 @@ RectTransform:
   m_GameObject: {fileID: 1597320348}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.38, y: 0.38, z: 0.38}
+  m_LocalScale: {x: 0.2483224, y: 0.2483224, z: 0.2483224}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1124575444}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 21.6, y: 19.8}
+  m_AnchoredPosition: {x: 22.5, y: 14}
   m_SizeDelta: {x: 37.13, y: 77.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1597320350
@@ -4767,7 +4766,11 @@ PrefabInstance:
       objectReference: {fileID: 138758881}
     - target: {fileID: 3371208697736600990, guid: 2df0d6d485b698044aaab49a4a94b6c0, type: 3}
       propertyPath: potatoDrainSpeed
-      value: 0.01
+      value: 0.005
+      objectReference: {fileID: 0}
+    - target: {fileID: 3371208697736600990, guid: 2df0d6d485b698044aaab49a4a94b6c0, type: 3}
+      propertyPath: potatoGainAmount
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 3371208697736600990, guid: 2df0d6d485b698044aaab49a4a94b6c0, type: 3}
       propertyPath: potatoSpawnPoint

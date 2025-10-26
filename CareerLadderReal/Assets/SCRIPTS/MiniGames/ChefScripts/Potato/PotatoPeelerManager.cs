@@ -17,7 +17,7 @@ public class PotatoPeelerManager : MonoBehaviour
     public TMP_Text[] countdownTexts;
 
     [Header("Progress Bar")]
-    public ProgressBar progressBar; // Assign in Inspector
+    public ProgressBar progressBar; // Shared across minigames
     public float potatoDrainSpeed = 0.03f; // How fast bar drains while waiting
     public float potatoGainAmount = 0.2f;  // How much it gains per finished batch
 
@@ -29,7 +29,6 @@ public class PotatoPeelerManager : MonoBehaviour
 
     private bool countdownActive = false;
 
-
     public bool InMinigame => minigameZone != null && minigameZone.InMinigame;
     public MinigameZone minigameZone;
 
@@ -40,26 +39,13 @@ public class PotatoPeelerManager : MonoBehaviour
 
         SpawnPeeler();
 
-        // Configure progress bar for this minigame
+        // Start draining immediately
         if (progressBar != null)
-        {
-            progressBar.SetRates(potatoDrainSpeed, potatoGainAmount);
-            progressBar.StartDraining(); // Start draining until potatoes are peeled
-        }
+            progressBar.StartDraining(this, potatoDrainSpeed);
 
-        // Start first batch countdown
+        // Start first countdown
         StartCountdown(nextBatchDelay);
     }
-
-    private void Update()
-{
-    if (potatoQueue.Count > 0 || activePotato != null)
-        progressBar.StartDraining();
-    else
-        progressBar.StopDraining();
-}
-
-
 
     private void SpawnPeeler()
     {
@@ -78,125 +64,106 @@ public class PotatoPeelerManager : MonoBehaviour
     }
 
     private void SpawnNewBatch()
-{
-    // Reset peeler position
-    if (peeler != null)
-        peeler.transform.position = peelerInitialPosition;
-
-    potatoQueue.Clear();
-
-    for (int i = 0; i < batchSize; i++)
     {
-        GameObject potato = InstantiateRandomPotato();
-        var surface = potato.GetComponent<PotatoPeelSurface>();
-        surface.OnFullyPeeled += HandlePotatoPeeled;
+        if (peeler != null)
+            peeler.transform.position = peelerInitialPosition;
 
-        if (i == 0)
+        potatoQueue.Clear();
+
+        for (int i = 0; i < batchSize; i++)
         {
-            activePotato = surface;
-            peeler.SetActivePotato(activePotato);
+            GameObject potato = InstantiateRandomPotato();
+            var surface = potato.GetComponent<PotatoPeelSurface>();
+            surface.OnFullyPeeled += HandlePotatoPeeled;
+
+            if (i == 0)
+            {
+                activePotato = surface;
+                peeler.SetActivePotato(activePotato);
+            }
+            else
+            {
+                potatoQueue.Enqueue(potato);
+                potato.SetActive(false);
+            }
         }
-        else
-        {
-            potatoQueue.Enqueue(potato);
-            potato.SetActive(false);
-        }
+
+        foreach (var text in countdownTexts)
+            if (text != null) text.gameObject.SetActive(false);
+
+        // Resume draining once countdown ends
+        if (progressBar != null)
+            progressBar.StartDraining(this, potatoDrainSpeed);
     }
-
-    foreach (var text in countdownTexts)
-    {
-        if (text != null)
-            text.gameObject.SetActive(false);
-    }
-
-    // Only start draining if countdown is not active
-    if (progressBar != null && !countdownActive)
-        progressBar.StartDraining();
-}
-
-
 
     private GameObject InstantiateRandomPotato()
     {
         if (potatoPrefabs.Length == 0) return null;
         GameObject prefab = potatoPrefabs[Random.Range(0, potatoPrefabs.Length)];
-        GameObject potato = Instantiate(prefab, potatoSpawnPoint.position, Quaternion.identity);
-        return potato;
+        return Instantiate(prefab, potatoSpawnPoint.position, Quaternion.identity);
     }
 
     private void HandlePotatoPeeled(PotatoPeelSurface peeled)
-{
-    peeled.OnFullyPeeled -= HandlePotatoPeeled;
-    Destroy(peeled.gameObject);
-
-    if (potatoQueue.Count > 0)
     {
-        GameObject next = potatoQueue.Dequeue();
-        next.SetActive(true);
-        activePotato = next.GetComponent<PotatoPeelSurface>();
-        peeler.SetActivePotato(activePotato);
-    }
-    else
-    {
-        activePotato = null;
-        peeler.ClearPotato();
+        peeled.OnFullyPeeled -= HandlePotatoPeeled;
+        Destroy(peeled.gameObject);
 
-        if (progressBar != null)
+        if (potatoQueue.Count > 0)
         {
-            progressBar.AddProgress();
+            GameObject next = potatoQueue.Dequeue();
+            next.SetActive(true);
+            activePotato = next.GetComponent<PotatoPeelSurface>();
+            peeler.SetActivePotato(activePotato);
         }
+        else
+        {
+            activePotato = null;
+            peeler.ClearPotato();
 
-        // Start next countdown
-        StartCountdown(nextBatchDelay);
+            if (progressBar != null)
+            {
+                progressBar.StopDraining(this);
+                progressBar.AddProgress(this, potatoGainAmount);
+            }
+
+            StartCountdown(nextBatchDelay);
+        }
     }
-}
-
 
     private void StartCountdown(float duration)
-{
-    if (countdownCoroutine != null)
-        StopCoroutine(countdownCoroutine);
+    {
+        if (countdownCoroutine != null)
+            StopCoroutine(countdownCoroutine);
 
-    countdownActive = true;
+        countdownActive = true;
 
-    // Only stop draining if there are no active potatoes
-    if (progressBar != null && activePotato == null)
-        progressBar.StopDraining();
+        if (progressBar != null)
+            progressBar.StopDraining(this);
 
-    countdownCoroutine = StartCoroutine(CountdownCoroutine(duration));
-}
-
-
+        countdownCoroutine = StartCoroutine(CountdownCoroutine(duration));
+    }
 
     private IEnumerator CountdownCoroutine(float duration)
-{
-    foreach (var text in countdownTexts)
     {
-        if (text != null)
-            text.gameObject.SetActive(true);
-    }
-
-    float remaining = duration;
-    while (remaining > 0)
-    {
-        string displayTime = Mathf.CeilToInt(remaining).ToString();
         foreach (var text in countdownTexts)
+            if (text != null) text.gameObject.SetActive(true);
+
+        float remaining = duration;
+        while (remaining > 0)
         {
-            if (text != null)
-                text.text = displayTime;
+            string displayTime = Mathf.CeilToInt(remaining).ToString();
+            foreach (var text in countdownTexts)
+                if (text != null) text.text = displayTime;
+
+            remaining -= Time.deltaTime;
+            yield return null;
         }
 
-        remaining -= Time.deltaTime;
-        yield return null;
+        countdownActive = false;
+        SpawnNewBatch();
     }
-
-    countdownActive = false;
-
-    // Spawn next batch
-    SpawnNewBatch();
 }
 
-}
 
 
 

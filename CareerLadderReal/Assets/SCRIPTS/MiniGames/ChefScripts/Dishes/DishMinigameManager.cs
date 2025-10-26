@@ -1,6 +1,6 @@
-using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class DishMinigameManager : MonoBehaviour
 {
@@ -17,10 +17,10 @@ public class DishMinigameManager : MonoBehaviour
     [Header("Stacking (optional)")]
     public float zOffsetPerPlate = 0.05f;
 
-    [Header("Progress Bar")]
-    public ProgressBar progressBar; // assign in Inspector
-    public float drainSpeed = 0.05f; // drain while plates are capped
-    public float gainAmount = 0.1f;  // gain per plate cleaned
+    [Header("Progress Bar (shared)")]
+    public ProgressBar progressBar; // shared across minigames
+    public float dishDrainSpeed = 0.05f; // drain while plates are capped
+    public float dishGainAmount = 0.1f;  // gain per plate cleaned
 
     private List<GameObject> spawnedPlates = new List<GameObject>();
     private GameObject currentActivePlate = null;
@@ -28,22 +28,20 @@ public class DishMinigameManager : MonoBehaviour
 
     void Start()
     {
-        // Set the progress bar rates from this script
         if (progressBar != null)
-            progressBar.SetRates(drainSpeed, gainAmount);
+            progressBar.StartDraining(this, dishDrainSpeed);
 
         spawnRoutine = StartCoroutine(SpawnPlatesOverTime());
     }
 
     private void Update()
     {
-        // Start/stop draining based on plate count
         if (progressBar != null)
         {
             if (spawnedPlates.Count >= maxPlates)
-                progressBar.StartDraining();
+                progressBar.StartDraining(this, dishDrainSpeed);
             else
-                progressBar.StopDraining();
+                progressBar.StopDraining(this);
         }
     }
 
@@ -60,12 +58,12 @@ public class DishMinigameManager : MonoBehaviour
                     SpawnAndPoolPlate();
 
                 if (spawnedPlates.Count < maxPlates && progressBar != null)
-                    progressBar.StopDraining();
+                    progressBar.StopDraining(this);
             }
             else
             {
                 if (progressBar != null)
-                    progressBar.StartDraining();
+                    progressBar.StartDraining(this, dishDrainSpeed);
 
                 yield return null;
             }
@@ -123,9 +121,12 @@ public class DishMinigameManager : MonoBehaviour
             currentActivePlate = null;
         }
 
-        // Reward a bit of progress for cleaning a plate
+        // Reward progress for cleaning a plate
         if (progressBar != null)
-            progressBar.AddProgress();
+        {
+            progressBar.AddProgress(this, dishGainAmount);
+            progressBar.StopDraining(this);
+        }
 
         // Restart spawn routine
         if (spawnRoutine != null)
@@ -138,6 +139,9 @@ public class DishMinigameManager : MonoBehaviour
         return currentActivePlate;
     }
 }
+
+
+
 
 
 
