@@ -11,7 +11,18 @@ public class MinigameZone : MonoBehaviour
     private bool playerInZone = false;
     private bool inMinigame = false;
     private GameObject player;
-    private playerMovementScript playerMovementScript; // ✅ use correct type
+    private playerMovementScript playerMovementScript;
+
+    private void OnEnable()
+    {
+        // 👂 Listen for camera transitions from StageCameraMover
+        StageCameraMover.OnCameraStageSwitched += HandleCameraSwitch;
+    }
+
+    private void OnDisable()
+    {
+        StageCameraMover.OnCameraStageSwitched -= HandleCameraSwitch;
+    }
 
     void Start()
     {
@@ -52,7 +63,7 @@ public class MinigameZone : MonoBehaviour
             minigameCamera.depth = 1;
         }
 
-        // ✅ Stop movement cleanly
+        // Disable movement
         if (playerMovementScript != null)
             playerMovementScript.DisableMovement();
 
@@ -61,6 +72,9 @@ public class MinigameZone : MonoBehaviour
 
     public void ExitMinigame()
     {
+        if (!inMinigame)
+            return;
+
         inMinigame = false;
 
         // Switch cameras back
@@ -72,11 +86,21 @@ public class MinigameZone : MonoBehaviour
             mainCamera.depth = 1;
         }
 
-        // ✅ Re-enable movement
+        // Re-enable movement
         if (playerMovementScript != null)
             playerMovementScript.EnableMovement();
 
         Debug.Log("Exited minigame view");
+    }
+
+    // 🔔 Automatically triggered when main camera switches (event)
+    private void HandleCameraSwitch()
+    {
+        if (inMinigame)
+        {
+            Debug.Log("Minigame exited due to camera switch.");
+            ExitMinigame();
+        }
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -85,7 +109,6 @@ public class MinigameZone : MonoBehaviour
         {
             playerInZone = true;
             player = other.gameObject;
-
             playerMovementScript = player.GetComponent<playerMovementScript>();
         }
     }
@@ -98,6 +121,7 @@ public class MinigameZone : MonoBehaviour
         }
     }
 }
+
 
 
 
