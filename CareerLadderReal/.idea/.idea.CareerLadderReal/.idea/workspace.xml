@@ -7,8 +7,6 @@
     <list default="true" id="b77fcc86-c3d6-4626-8d7a-e6eca562e2b4" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.CareerLadderReal/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.CareerLadderReal/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/SCRIPTS/UIscripts/UIManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/SCRIPTS/UIscripts/UIManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/TextMesh Pro/Resources/Fonts &amp; Materials/LiberationSans SDF - Fallback.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/TextMesh Pro/Resources/Fonts &amp; Materials/LiberationSans SDF - Fallback.asset" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,6 +98,7 @@
       <updated>1760981042273</updated>
       <workItem from="1760981045398" duration="2815000" />
       <workItem from="1760987395652" duration="1891000" />
+      <workItem from="1761669972354" duration="811000" />
     </task>
     <servers />
   </component>

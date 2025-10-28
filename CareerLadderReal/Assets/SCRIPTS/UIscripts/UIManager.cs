@@ -9,10 +9,11 @@ public class UIManager : MonoBehaviour
 {
     [SerializeField] public GameObject mainMenuPanel;
     [SerializeField] public GameObject settingsPanel;
+    [SerializeField] public GameObject infoPanel;
 
     public void Start()
     {
-        settingsPanel.SetActive(false);
+
     }
 
     public void StartGame()
@@ -33,9 +34,18 @@ public class UIManager : MonoBehaviour
         mainMenuPanel.SetActive(false);
     }
 
-    public void CloseSettings()
+    public void OpenInfo()
     {
+        Debug.Log("Opened info");
+        infoPanel.SetActive(true);
+        mainMenuPanel.SetActive(false);
+    }
+
+    public void BackToMainMenu()
+    {
+        infoPanel.SetActive(false);
         settingsPanel.SetActive(false);
+        
         mainMenuPanel.SetActive(true);
     }
 }
