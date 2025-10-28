@@ -13,7 +13,8 @@ public class UIManager : MonoBehaviour
 
     public void Start()
     {
-
+        settingsPanel.SetActive(false);
+        infoPanel.SetActive(false);
     }
 
     public void StartGame()
