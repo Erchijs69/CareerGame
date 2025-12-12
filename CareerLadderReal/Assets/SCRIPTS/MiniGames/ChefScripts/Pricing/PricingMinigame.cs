@@ -1,16 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
-
-[System.Serializable]
-public class Dish
-{
-    public string name;
-    public Sprite image;
-    public string[] requiredKeywords;
-    [HideInInspector] public List<string> generatedIngredients = new List<string>();
-}
 
 public class PricingMinigame : MonoBehaviour
 {
@@ -23,37 +15,42 @@ public class PricingMinigame : MonoBehaviour
 
     [Header("UI Elements")]
     public GameObject uiPoster;
-    public TMP_Text dishNameText;
-    public Image dishImage;
-    public Transform stickyNotesParent;
+    public Transform leftListParent;
+    public GameObject leftEntryPrefab;
+    public Transform[] stickyNoteParents;
     public GameObject stickyEntryPrefab;
     public TMP_InputField priceInputField;
     public Button approveButton;
+
+    [Header("Dish UI (for 4 dishes)")]
+    public TMP_Text[] dishNameTexts;   // 4 text fields for names
+    public Image[] dishImages;          // 4 image fields for dish images
+    public Sprite steakAndPotatoesSprite;
+    public Sprite caesarSaladSprite;
+    public Sprite bolognesePastaSprite;
+    public Sprite applePieSprite;
 
     [Header("Progress Bar (shared)")]
     public ProgressBar progressBar;
     public float successGainAmount = 0.1f;
     public float failPenalty = -0.05f;
 
-    [Header("Dish Setup")]
-    public Dish[] allDishes; // assign 4 dishes in inspector
+    // Runtime variables
+    private bool active = false;       // inside minigame
+    private bool isActive = false;     // level switched to this minigame
+    private bool completed = false;    // minigame completed once
 
-    [Header("Ingredients")]
-    public string[] fixedIngredients = new string[]
+    private List<GameObject> spawnedLeftEntries = new List<GameObject>();
+    private List<GameObject> spawnedStickyEntries = new List<GameObject>();
+    private Dictionary<string, float> ingredientPrices = new Dictionary<string, float>();
+    private float correctTotal = 0f;
+
+    private readonly string[] fixedIngredients = new string[]
     {
         "Tomato","Onion","Carrot","Potato","Garlic",
         "Chicken Breast","Beef Steak","Salmon Fillet","Apple","Banana",
         "Lettuce","Cucumber","Flour","Sugar","Salt"
     };
-
-    // Runtime variables
-    private bool active = false;
-    private bool isActive = false;
-    private bool completed = false;
-    private Dish selectedDish;
-    private Dictionary<string, float> ingredientPrices = new Dictionary<string, float>();
-    private float correctTotal = 0f;
-    private List<GameObject> spawnedStickyEntries = new List<GameObject>();
 
     public bool InMinigame => isActive;
     public bool Completed => completed;
@@ -78,9 +75,11 @@ public class PricingMinigame : MonoBehaviour
     {
         if (!isActive || completed) return;
 
+        // Enter minigame when player is in the zone
         if (minigameZone != null && minigameZone.InMinigame && !active)
             StartMinigame();
 
+        // Exit minigame if player leaves
         if (active && (minigameZone == null || !minigameZone.InMinigame))
             EndMinigame();
     }
@@ -98,7 +97,7 @@ public class PricingMinigame : MonoBehaviour
         if (isActive) return;
         isActive = true;
 
-        if (selectedDish == null)
+        if (ingredientPrices.Count == 0)
             GenerateRound();
     }
 
@@ -106,7 +105,6 @@ public class PricingMinigame : MonoBehaviour
     {
         if (!isActive) return;
         isActive = false;
-
         active = false;
         uiPoster.SetActive(false);
     }
@@ -132,58 +130,91 @@ public class PricingMinigame : MonoBehaviour
         ingredientPrices.Clear();
         correctTotal = 0f;
 
-        // Assign random prices for all ingredients
+        // Assign random float prices (1.0–10.0, 1 decimal place)
         foreach (var ing in fixedIngredients)
         {
             float price = Random.Range(1f, 10f);
-            price = Mathf.Round(price * 10f) / 10f; // 1 decimal place
+            price = Mathf.Round(price * 10f) / 10f;
             ingredientPrices[ing] = price;
         }
 
-        // Generate ingredients for all dishes
-        foreach (var dish in allDishes)
+        // Populate sticky notes
+        List<string> shuffled = new List<string>(fixedIngredients);
+        for (int i = 0; i < shuffled.Count; i++)
         {
-            dish.generatedIngredients.Clear();
-            dish.generatedIngredients.AddRange(dish.requiredKeywords);
-
-            int extraCount = Random.Range(0, 3); // 0-2 extra
-            for (int i = 0; i < extraCount; i++)
-            {
-                string extra = fixedIngredients[Random.Range(0, fixedIngredients.Length)];
-                if (!dish.generatedIngredients.Contains(extra))
-                    dish.generatedIngredients.Add(extra);
-            }
-
-            // shuffle
-            // shuffle ingredients
-// shuffle ingredients
-for (int i = 0; i < dish.generatedIngredients.Count; i++)
-{
-    int j = Random.Range(i, dish.generatedIngredients.Count);
-    string temp = dish.generatedIngredients[i];
-    dish.generatedIngredients[i] = dish.generatedIngredients[j];
-    dish.generatedIngredients[j] = temp;
-}
-
-
+            int j = Random.Range(i, shuffled.Count);
+            (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
         }
 
-        // Select one dish randomly
-        selectedDish = allDishes[Random.Range(0, allDishes.Length)];
-
-        // Update UI
-        dishNameText.text = selectedDish.name;
-        dishImage.sprite = selectedDish.image;
-
-        // Spawn sticky notes for selected dish
-        for (int i = 0; i < selectedDish.generatedIngredients.Count; i++)
+        int index = 0;
+        for (int note = 0; note < 3; note++)
         {
-            GameObject entry = Instantiate(stickyEntryPrefab, stickyNotesParent);
-            entry.transform.localPosition = new Vector3(0f, i * 35f, 0f);
-            entry.transform.Find("Name")?.GetComponent<TMP_Text>().text = selectedDish.generatedIngredients[i];
-            spawnedStickyEntries.Add(entry);
+            Transform parent = note < stickyNoteParents.Length ? stickyNoteParents[note] : transform;
 
-            correctTotal += ingredientPrices[selectedDish.generatedIngredients[i]];
+            for (int slot = 0; slot < 5; slot++)
+            {
+                if (index >= shuffled.Count) break;
+                string ing = shuffled[index];
+
+                GameObject entry = Instantiate(stickyEntryPrefab, parent);
+                spawnedStickyEntries.Add(entry);
+                entry.transform.localPosition = new Vector3(0f, slot * 35f, 0f);
+
+                entry.transform.Find("Name")?.GetComponent<TMP_Text>().SetText(ing);
+                entry.transform.Find("Price")?.GetComponent<TMP_Text>().SetText(ingredientPrices[ing].ToString());
+                index++;
+            }
+        }
+
+        // ------------------------
+        // Generate left list with 4 dishes and required keywords
+        // ------------------------
+        string[] dishNames = { "Steak And Potatoes", "Caesar Salad", "Bolognese Pasta", "ApplePie" };
+        Sprite[] dishSprites = { steakAndPotatoesSprite, caesarSaladSprite, bolognesePastaSprite, applePieSprite };
+        string[][] dishKeywords = new string[][]
+        {
+            new string[] { "Beef Steak", "Potato" },
+            new string[] { "Chicken Breast", "Lettuce" },
+            new string[] { "Tomato", "Onion", "Garlic", "Carrot" },
+            new string[] { "Apple", "Flour", "Sugar" }
+        };
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (i < dishNameTexts.Length && dishNameTexts[i] != null)
+                dishNameTexts[i].text = dishNames[i];
+
+            if (i < dishImages.Length && dishImages[i] != null)
+                dishImages[i].sprite = dishSprites[i];
+
+            // Include required keywords and random extras (total 5 ingredients per dish)
+            List<string> possibleExtras = new List<string>(fixedIngredients);
+            List<string> selectedIngredients = new List<string>(dishKeywords[i]);
+
+            while (selectedIngredients.Count < 5)
+            {
+                string randIng = possibleExtras[Random.Range(0, possibleExtras.Count)];
+                if (!selectedIngredients.Contains(randIng))
+                    selectedIngredients.Add(randIng);
+            }
+
+            // Shuffle
+            for (int j = 0; j < selectedIngredients.Count; j++)
+            {
+                int k = Random.Range(j, selectedIngredients.Count);
+                (selectedIngredients[j], selectedIngredients[k]) = (selectedIngredients[k], selectedIngredients[j]);
+            }
+
+            // Spawn entries in left list
+            GameObject entry = Instantiate(leftEntryPrefab, leftListParent);
+            spawnedLeftEntries.Add(entry);
+            entry.transform.localPosition = new Vector3(0f, i * 35f, 0f);
+            entry.transform.Find("Name")?.GetComponent<TMP_Text>().SetText(dishNames[i] + ": " + string.Join(", ", selectedIngredients));
+
+            // Add prices to total for correct answer
+            foreach (var ing in selectedIngredients)
+                if (ingredientPrices.TryGetValue(ing, out float p))
+                    correctTotal += p;
         }
 
         correctTotal = Mathf.Round(correctTotal * 10f) / 10f;
@@ -192,9 +223,10 @@ for (int i = 0; i < dish.generatedIngredients.Count; i++)
 
     private void ClearAllEntries()
     {
-        foreach (var go in spawnedStickyEntries)
-            if (go) Destroy(go);
+        foreach (var go in spawnedLeftEntries) if (go) Destroy(go);
+        foreach (var go in spawnedStickyEntries) if (go) Destroy(go);
 
+        spawnedLeftEntries.Clear();
         spawnedStickyEntries.Clear();
     }
 
@@ -224,6 +256,7 @@ for (int i = 0; i < dish.generatedIngredients.Count; i++)
 
         minigameZone?.ForceExitMinigame();
 
+        // Disable collider so it can't be entered again
         if (minigameZone != null)
         {
             var col = minigameZone.GetComponent<Collider2D>();
@@ -234,9 +267,10 @@ for (int i = 0; i < dish.generatedIngredients.Count; i++)
     private void HandleIncorrect()
     {
         progressBar?.AddProgress(this, failPenalty);
-        // Do NOT regenerate; keep ingredients the same
+        // Do NOT regenerate items
     }
 }
+
 
 
 
