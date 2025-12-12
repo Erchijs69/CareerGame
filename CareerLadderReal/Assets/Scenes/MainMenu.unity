@@ -1381,7 +1381,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "\u2022 Pav\u0101rs\n\u2022 Vizu\u0101l\u0101 t\u0113la stilists\n\u2022
-    Komercdarb\u012Bba"
+    Komercdarbinieks"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 2c4a9ff5eec596847a238df937f690dc, type: 2}
   m_sharedMaterial: {fileID: 7940002299045657848, guid: 2c4a9ff5eec596847a238df937f690dc, type: 2}
@@ -2432,7 +2432,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "<b>\"Career Ladder\"</b> (Karjeras Trepes) ir karjeras orient\u0101cijas
+  m_text: "<b>\"Career Ladder\"</b> (Karjeras K\u0101pnes) ir karjeras orient\u0101cijas
     sp\u0113le, kas sniedz skol\u0113niem iesp\u0113ju iepaz\u012Bt tr\u012Bs izgl\u012Bt\u012Bbas
     programmas no Ekonomikas un Kult\u016Bras augstskolas un R\u012Bgas T\u016Brisma
     un rado\u0161\u0101s industrijas tehnikuma. Sp\u0113le demonstr\u0113, k\u0101da
