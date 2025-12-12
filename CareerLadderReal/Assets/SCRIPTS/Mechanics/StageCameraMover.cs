@@ -31,6 +31,8 @@ public class StageCameraMover : MonoBehaviour
     // 🔔 Event for other systems (like minigames)
     public static System.Action OnCameraStageSwitched;
 
+    public static int CurrentLevel = 0;
+
     private void Update()
     {
         if (progressBar == null || stageYPositions.Count == 0 || stageThresholds.Count != stageYPositions.Count)
@@ -61,9 +63,10 @@ public class StageCameraMover : MonoBehaviour
 
     private IEnumerator HandleStageTransition(int newStage)
 {
-    isTransitioning = true;
+        isTransitioning = true;
 
     // 🔔 Notify minigame zones (or other listeners)
+    CurrentLevel = newStage; 
     OnCameraStageSwitched?.Invoke();
 
     // Disable player movement
@@ -118,6 +121,13 @@ public class StageCameraMover : MonoBehaviour
         color.a = targetAlpha;
         fadeOverlay.color = color;
     }
+
+    void SwitchToStage(int nextLevel)
+    {
+        CurrentLevel = nextLevel;
+        OnCameraStageSwitched?.Invoke();
+    }
+
 
     // --- Draw thresholds in Scene View ---
     private void OnDrawGizmos()

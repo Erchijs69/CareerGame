@@ -13,6 +13,13 @@ public class ProgressBar : MonoBehaviour
     [Header("Default Settings")]
     public float baseGainAmount = 0.1f;
 
+    // Debug/test speed
+    public float manualGainSpeed = 0.5f;
+    public float manualDrainSpeed = 0.5f;
+
+    // --- New: pause toggle ---
+    private bool isPaused = false;
+
     private void Start()
     {
         if (progressSlider == null)
@@ -26,15 +33,35 @@ public class ProgressBar : MonoBehaviour
         if (progressSlider == null)
             return;
 
-        // Sum all active drains
-        float totalDrain = 0f;
-        foreach (var rate in activeDrainers.Values)
-            totalDrain += rate;
+        // Toggle pause on "I"
+        if (Input.GetKeyDown(KeyCode.I))
+            isPaused = !isPaused;
 
-        if (totalDrain > 0f)
+        if (!isPaused)
         {
-            progressSlider.value -= totalDrain * Time.deltaTime;
-            progressSlider.value = Mathf.Clamp01(progressSlider.value);
+            // --- Automatic draining ---
+            float totalDrain = 0f;
+            foreach (var rate in activeDrainers.Values)
+                totalDrain += rate;
+
+            if (totalDrain > 0f)
+            {
+                progressSlider.value -= totalDrain * Time.deltaTime;
+                progressSlider.value = Mathf.Clamp01(progressSlider.value);
+            }
+
+            // --- Debug controls ---
+            if (Input.GetKey(KeyCode.P))
+            {
+                progressSlider.value += manualGainSpeed * Time.deltaTime;
+                progressSlider.value = Mathf.Clamp01(progressSlider.value);
+            }
+
+            if (Input.GetKey(KeyCode.O))
+            {
+                progressSlider.value -= manualDrainSpeed * Time.deltaTime;
+                progressSlider.value = Mathf.Clamp01(progressSlider.value);
+            }
         }
     }
 
@@ -66,7 +93,12 @@ public class ProgressBar : MonoBehaviour
     }
 
     public float GetValue() => progressSlider.value;
+
+    // Optional: public getter to check pause state
+    public bool IsPaused() => isPaused;
 }
+
+
 
 
 

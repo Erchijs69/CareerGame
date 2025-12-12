@@ -10,6 +10,10 @@ public class DishMinigameManager : MonoBehaviour
     public GameObject[] platePrefabs;
     public int maxPlates = 8;
 
+    [Header("Level Setup")]
+    public int levelIndex;
+    public int LevelIndex => levelIndex;
+
     [Header("Spawn Timing")]
     public float minSpawnDelay = 10f;
     public float maxSpawnDelay = 30f;
@@ -25,17 +29,38 @@ public class DishMinigameManager : MonoBehaviour
     private List<GameObject> spawnedPlates = new List<GameObject>();
     private GameObject currentActivePlate = null;
     private Coroutine spawnRoutine;
+    private bool active = false;
+
+    void OnEnable()
+    {
+        StageCameraMover.OnCameraStageSwitched += HandleStageSwitch;
+    }
+
+    void OnDisable()
+    {
+        StageCameraMover.OnCameraStageSwitched -= HandleStageSwitch;
+    }
+
+    private void HandleStageSwitch()
+    {
+        if (StageCameraMover.CurrentLevel == levelIndex)
+            ActivateMinigame();
+        else
+            DeactivateMinigame();
+    }
 
     void Start()
     {
-        if (progressBar != null)
-            progressBar.StartDraining(this, dishDrainSpeed);
-
-        spawnRoutine = StartCoroutine(SpawnPlatesOverTime());
+        if (StageCameraMover.CurrentLevel == levelIndex)
+            ActivateMinigame();
+        else
+            DeactivateMinigame();
     }
 
     private void Update()
     {
+        if (!active) return;
+
         if (progressBar != null)
         {
             if (spawnedPlates.Count >= maxPlates)
@@ -45,14 +70,61 @@ public class DishMinigameManager : MonoBehaviour
         }
     }
 
+    private void ActivateMinigame()
+    {
+        if (active) return;
+        active = true;
+
+        // Enable all plates
+        foreach (var p in spawnedPlates)
+            if (p != null) p.SetActive(true);
+
+        // Set current active plate if null
+        if (currentActivePlate == null && spawnedPlates.Count > 0)
+            currentActivePlate = spawnedPlates[0];
+
+        // Start spawning
+        if (spawnRoutine == null)
+            spawnRoutine = StartCoroutine(SpawnPlatesOverTime());
+
+        // Start draining
+        if (progressBar != null)
+            progressBar.StartDraining(this, dishDrainSpeed);
+    }
+
+    private void DeactivateMinigame()
+    {
+        if (!active) return;
+        active = false;
+
+        // Stop draining
+        if (progressBar != null)
+            progressBar.StopDraining(this);
+
+        // Stop spawning
+        if (spawnRoutine != null)
+        {
+            StopCoroutine(spawnRoutine);
+            spawnRoutine = null;
+        }
+
+        // Disable all plates
+        foreach (var p in spawnedPlates)
+            if (p != null) p.SetActive(false);
+
+        currentActivePlate = null;
+    }
+
     private IEnumerator SpawnPlatesOverTime()
     {
-        while (true)
+        while (active)
         {
             if (spawnedPlates.Count < maxPlates)
             {
                 float waitTime = Random.Range(minSpawnDelay, maxSpawnDelay);
                 yield return new WaitForSeconds(waitTime);
+
+                if (!active) yield break;
 
                 if (spawnedPlates.Count < maxPlates)
                     SpawnAndPoolPlate();
@@ -80,7 +152,7 @@ public class DishMinigameManager : MonoBehaviour
         newPlate.transform.localRotation = Quaternion.identity;
         newPlate.transform.localScale = Vector3.one;
 
-        bool shouldActivateNow = (currentActivePlate == null);
+        bool shouldActivateNow = (currentActivePlate == null && active);
         newPlate.SetActive(shouldActivateNow);
         if (shouldActivateNow)
             currentActivePlate = newPlate;
@@ -97,7 +169,7 @@ public class DishMinigameManager : MonoBehaviour
 
     public void PlateCleaned(GameObject cleanedPlate)
     {
-        if (cleanedPlate == null) return;
+        if (!active || cleanedPlate == null) return;
 
         if (spawnedPlates.Contains(cleanedPlate))
             spawnedPlates.Remove(cleanedPlate);
@@ -121,17 +193,11 @@ public class DishMinigameManager : MonoBehaviour
             currentActivePlate = null;
         }
 
-        // Reward progress for cleaning a plate
         if (progressBar != null)
         {
             progressBar.AddProgress(this, dishGainAmount);
             progressBar.StopDraining(this);
         }
-
-        // Restart spawn routine
-        if (spawnRoutine != null)
-            StopCoroutine(spawnRoutine);
-        spawnRoutine = StartCoroutine(SpawnPlatesOverTime());
     }
 
     public GameObject GetCurrentActivePlate()
@@ -139,6 +205,7 @@ public class DishMinigameManager : MonoBehaviour
         return currentActivePlate;
     }
 }
+
 
 
 

@@ -11,6 +11,10 @@ public class PotatoPeelerManager : MonoBehaviour
     public Transform potatoSpawnPoint;
     public Transform peelerStartPoint;
 
+    [Header("Level Setup")]
+    public int levelIndex;
+    public int LevelIndex => levelIndex;
+
     [Header("Spawn Settings")]
     public int batchSize = 5;
     public float nextBatchDelay = 20f; 
@@ -28,27 +32,42 @@ public class PotatoPeelerManager : MonoBehaviour
     private Coroutine countdownCoroutine;
 
     private bool countdownActive = false;
+    private bool isActive = false; // <-- Added
 
-    public bool InMinigame => minigameZone != null && minigameZone.InMinigame;
-    public MinigameZone minigameZone;
+    public bool InMinigame => isActive; // Needed for PotatoPeeler
+
+    void OnEnable()
+    {
+        StageCameraMover.OnCameraStageSwitched += HandleStageSwitch;
+    }
+
+    void OnDisable()
+    {
+        StageCameraMover.OnCameraStageSwitched -= HandleStageSwitch;
+    }
+
+    private void HandleStageSwitch()
+    {
+        if (StageCameraMover.CurrentLevel == levelIndex)
+            ActivateMinigame();
+        else
+            DeactivateMinigame();
+    }
 
     void Start()
     {
-        if (minigameZone == null)
-            minigameZone = FindObjectOfType<MinigameZone>();
-
         SpawnPeeler();
 
-        // Start draining immediately
-        if (progressBar != null)
-            progressBar.StartDraining(this, potatoDrainSpeed);
-
-        // Start first countdown
-        StartCountdown(nextBatchDelay);
+        if (StageCameraMover.CurrentLevel == levelIndex)
+            ActivateMinigame();
+        else
+            DeactivateMinigame();
     }
 
     private void SpawnPeeler()
     {
+        if (peeler != null) return; // Already spawned
+
         GameObject peelerObj = Instantiate(peelerPrefab, peelerStartPoint.position, Quaternion.identity);
         peeler = peelerObj.GetComponent<PotatoPeeler>();
         peeler.manager = this;
@@ -65,6 +84,8 @@ public class PotatoPeelerManager : MonoBehaviour
 
     private void SpawnNewBatch()
     {
+        if (!isActive) return;
+
         if (peeler != null)
             peeler.transform.position = peelerInitialPosition;
 
@@ -91,9 +112,7 @@ public class PotatoPeelerManager : MonoBehaviour
         foreach (var text in countdownTexts)
             if (text != null) text.gameObject.SetActive(false);
 
-        // Resume draining once countdown ends
-        if (progressBar != null)
-            progressBar.StartDraining(this, potatoDrainSpeed);
+        progressBar?.StartDraining(this, potatoDrainSpeed);
     }
 
     private GameObject InstantiateRandomPotato()
@@ -105,6 +124,8 @@ public class PotatoPeelerManager : MonoBehaviour
 
     private void HandlePotatoPeeled(PotatoPeelSurface peeled)
     {
+        if (!isActive) return;
+
         peeled.OnFullyPeeled -= HandlePotatoPeeled;
         Destroy(peeled.gameObject);
 
@@ -132,13 +153,13 @@ public class PotatoPeelerManager : MonoBehaviour
 
     private void StartCountdown(float duration)
     {
+        if (!isActive) return;
+
         if (countdownCoroutine != null)
             StopCoroutine(countdownCoroutine);
 
         countdownActive = true;
-
-        if (progressBar != null)
-            progressBar.StopDraining(this);
+        progressBar?.StopDraining(this);
 
         countdownCoroutine = StartCoroutine(CountdownCoroutine(duration));
     }
@@ -151,6 +172,8 @@ public class PotatoPeelerManager : MonoBehaviour
         float remaining = duration;
         while (remaining > 0)
         {
+            if (!isActive) yield break;
+
             string displayTime = Mathf.CeilToInt(remaining).ToString();
             foreach (var text in countdownTexts)
                 if (text != null) text.text = displayTime;
@@ -162,7 +185,42 @@ public class PotatoPeelerManager : MonoBehaviour
         countdownActive = false;
         SpawnNewBatch();
     }
+
+    private void ActivateMinigame()
+    {
+        if (isActive) return;
+        isActive = true;
+
+        SpawnPeeler();
+        progressBar?.StartDraining(this, potatoDrainSpeed);
+        StartCountdown(nextBatchDelay);
+    }
+
+    private void DeactivateMinigame()
+    {
+        if (!isActive) return;
+        isActive = false;
+
+        progressBar?.StopDraining(this);
+
+        if (countdownCoroutine != null)
+            StopCoroutine(countdownCoroutine);
+
+        foreach (var t in countdownTexts)
+            if (t != null) t.gameObject.SetActive(false);
+
+        foreach (var p in potatoQueue)
+            if (p != null) Destroy(p);
+        potatoQueue.Clear();
+
+        if (activePotato != null)
+            Destroy(activePotato.gameObject);
+
+        if (peeler != null)
+            Destroy(peeler.gameObject);
+    }
 }
+
 
 
 

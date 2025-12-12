@@ -13,6 +13,8 @@ public class MinigameZone : MonoBehaviour
     private GameObject player;
     private playerMovementScript playerMovementScript;
 
+    public int levelIndex;
+
     private void OnEnable()
     {
         // 👂 Listen for camera transitions from StageCameraMover
@@ -102,6 +104,12 @@ public class MinigameZone : MonoBehaviour
             ExitMinigame();
         }
     }
+
+    public void ForceExitMinigame()
+{
+    ExitMinigame();          // correctly switches cameras & movement
+    playerInZone = false;    // optional: ensures PricingMinigame won't think we're still inside
+}
 
     void OnTriggerEnter2D(Collider2D other)
     {
